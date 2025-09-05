@@ -1,10 +1,12 @@
 # Overview
 
-This is a working version of the ARAP 2D Shape manipulation in Python and PyQt5. 
-To change the `.obj` file, press `f` and the choose the `.obj` file. 
+This is a working version of the ARAP 2D Shape manipulation in Python and PyQt5. Original paper is [here](https://www-ui.is.s.u-tokyo.ac.jp/~takeo/papers/rigid.pdf)
+
 
 ## Usage
 
+* Run `$ python main.py` 
+* To change the `.obj` file, press `f` and the choose the `.obj` file. 
 * Right-click on the vertices of mesh. A red dot will appear on that part. Create at least 2 of these.
 * Then, hold left button on one of the red dots and begin moving the mesh.
 
