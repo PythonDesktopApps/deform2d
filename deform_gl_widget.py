@@ -68,12 +68,12 @@ class DeformGLWidget(QGLWidget):
         for vidx in self.m_vSelected:
             v = self.deformed_mesh.get_vertex(vidx)
             self.deformer.set_deformed_handle(vidx, (v[0], v[1]))
-        self.deformer.force_validation()
+        self.deformer.validate_setup()
         self.m_bConstraintsValid = True
 
     def update_deformed_mesh(self):
         self.validate_constraints()
-        self.deformer.UpdateDeformedMesh(self.deformed_mesh, bRigid=True)
+        self.deformer.update_deformed_mesh(self.deformed_mesh, bRigid=True)
 
     def update_scale(self):
         self.viewport = [0, 0, self.width(), self.height()]

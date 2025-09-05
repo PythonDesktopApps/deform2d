@@ -21,37 +21,10 @@ class RigidMeshDeformer:
         self.mLUFactX = None
         self.mLUFactY = None
 
-    def InvalidateSetup(self):
+    def invalidate_setup(self):
         self.m_bSetupValid = False
 
-    def SetDeformedHandle(self, nHandle, vHandle):
-        c = Constraint(nHandle, vHandle)
-        self.UpdateConstraint(c)
-
-    def RemoveHandle(self, nHandle):
-        c = Constraint(nHandle, np.array([0.0, 0.0], dtype=np.float32))
-        if c in self.m_vConstraints:
-            self.m_vConstraints.remove(c)
-        # restore to initial
-        self.m_vDeformedVerts[nHandle].vPosition = self.m_vInitialVerts[nHandle].vPosition.copy()
-        self.InvalidateSetup()
-
-    def UnTransformPoint(self, vTransform):
-        # Convert current deformed-space point into initial-space via barycentrics
-        for t in self.m_vTriangles:
-            v1 = self.m_vDeformedVerts[t.nVerts[0]].vPosition
-            v2 = self.m_vDeformedVerts[t.nVerts[1]].vPosition
-            v3 = self.m_vDeformedVerts[t.nVerts[2]].vPosition
-            b = barycentric_coords(vec2(vTransform), v1, v2, v3)
-            if np.all(b >= 0) and np.all(b <= 1):
-                v1i = self.m_vInitialVerts[t.nVerts[0]].vPosition
-                v2i = self.m_vInitialVerts[t.nVerts[1]].vPosition
-                v3i = self.m_vInitialVerts[t.nVerts[2]].vPosition
-                v = b[0] * v1i + b[1] * v2i + b[2] * v3i
-                vTransform[:] = v
-                return
-
-    def InitializeFromMesh(self, mesh: TriangleMesh):
+    def initialize_from_mesh(self, mesh: TriangleMesh):
         self.m_vConstraints.clear()
         self.m_vInitialVerts = []
         self.m_vDeformedVerts = []
@@ -91,10 +64,48 @@ class RigidMeshDeformer:
                 # sanity is skipped (no DebugBreak)
                 t.vTriCoords[j] = [x, y]
 
-        self.InvalidateSetup()
+        self.invalidate_setup()
 
-    def UpdateDeformedMesh(self, mesh: TriangleMesh, bRigid=True):
-        self.ValidateDeformedMesh(bRigid)
+    def set_deformed_handle(self, handle: int, pos_xy):
+        c = Constraint(handle, pos_xy)
+        self.update_constraint(c)
+
+    def remove_handle(self, handle: int):
+        c = Constraint(handle, np.array([0.0, 0.0], dtype=np.float32))
+        if c in self.m_vConstraints:
+            self.m_vConstraints.remove(c)
+        # restore to initial
+        self.m_vDeformedVerts[handle].vPosition = self.m_vInitialVerts[handle].vPosition.copy()
+        self.invalidate_setup()
+
+    def validate_setup(self):
+        if self.m_bSetupValid or len(self.m_vConstraints) < 2:
+            return
+
+        self.precompute_orientation_matrix()
+        for i in range(len(self.m_vTriangles)):
+            self.precompute_scaling_matrices(i)
+        self.precompute_fitting_matrices()
+
+        self.m_bSetupValid = True
+
+    def untransform_point(self, vTransform):
+        # Convert current deformed-space point into initial-space via barycentrics
+        for t in self.m_vTriangles:
+            v1 = self.m_vDeformedVerts[t.nVerts[0]].vPosition
+            v2 = self.m_vDeformedVerts[t.nVerts[1]].vPosition
+            v3 = self.m_vDeformedVerts[t.nVerts[2]].vPosition
+            b = barycentric_coords(vec2(vTransform), v1, v2, v3)
+            if np.all(b >= 0) and np.all(b <= 1):
+                v1i = self.m_vInitialVerts[t.nVerts[0]].vPosition
+                v2i = self.m_vInitialVerts[t.nVerts[1]].vPosition
+                v3i = self.m_vInitialVerts[t.nVerts[2]].vPosition
+                v = b[0] * v1i + b[1] * v2i + b[2] * v3i
+                vTransform[:] = v
+                return
+
+    def update_deformed_mesh(self, mesh: TriangleMesh, bRigid=True):
+        self.validate_deformed_mesh(bRigid)
         vVerts = self.m_vDeformedVerts if len(self.m_vConstraints) > 1 else self.m_vInitialVerts
         nVerts = mesh.get_num_vertices()
         arr = mesh.vertices.copy()
@@ -105,7 +116,7 @@ class RigidMeshDeformer:
             arr[i, 2] = 0.0
         mesh.vertices = arr
 
-    def UpdateConstraint(self, cons):
+    def update_constraint(self, cons):
         if cons in self.m_vConstraints:
             # update existing
             # set position directly
@@ -117,23 +128,13 @@ class RigidMeshDeformer:
         else:
             self.m_vConstraints.add(cons)
             self.m_vDeformedVerts[cons.nVertex].vPosition = cons.vConstrainedPos.copy()
-            self.InvalidateSetup()
+            self.invalidate_setup()
 
-    def ExtractSubMatrix(self, M, rowOffset, colOffset, rows, cols):
+    def extract_submatrix(self, M, rowOffset, colOffset, rows, cols):
         return M[rowOffset:rowOffset + rows, colOffset:colOffset + cols].copy()
 
-    def ValidateSetup(self):
-        if self.m_bSetupValid or len(self.m_vConstraints) < 2:
-            return
 
-        self.PrecomputeOrientationMatrix()
-        for i in range(len(self.m_vTriangles)):
-            self.PrecomputeScalingMatrices(i)
-        self.PrecomputeFittingMatrices()
-
-        self.m_bSetupValid = True
-
-    def PrecomputeFittingMatrices(self, symmetric=False):
+    def precompute_fitting_matrices(self, symmetric=False):
         constraints_vec = sorted(list(self.m_vConstraints), key=lambda c: c.nVertex)
 
         nVerts = len(self.m_vDeformedVerts)
@@ -197,7 +198,7 @@ class RigidMeshDeformer:
         self.mLUFactX = lu_factor(self.mHXPrime, check_finite=False)
         self.mLUFactY = lu_factor(self.mHYPrime, check_finite=False)
 
-    def PrecomputeOrientationMatrix(self):
+    def precompute_orientation_matrix(self):
         constraints_vec = sorted(list(self.m_vConstraints), key=lambda c: c.nVertex)
         nVerts = len(self.m_vDeformedVerts)
         nConstraints = len(constraints_vec)
@@ -275,7 +276,7 @@ class RigidMeshDeformer:
         Final = -GPrimeInv @ B
         self.m_mFirstMatrix = Final  # shape (2*nFreeVerts, 2*nConstraints)
 
-    def PrecomputeScalingMatrices(self, nTriangle):
+    def precompute_scaling_matrices(self, nTriangle):
         t = self.m_vTriangles[nTriangle]
 
         x01 = float(t.vTriCoords[0][0])
@@ -365,7 +366,7 @@ class RigidMeshDeformer:
         t.mF = mFInv
         t.mC = mC
 
-    def UpdateScaledTriangle(self, nTriangle):
+    def update_scaled_triangle(self, nTriangle):
         t = self.m_vTriangles[nTriangle]
         v0 = self.m_vDeformedVerts[t.nVerts[0]].vPosition.astype(np.float64)
         v1 = self.m_vDeformedVerts[t.nVerts[1]].vPosition.astype(np.float64)
@@ -397,7 +398,7 @@ class RigidMeshDeformer:
         t.vScaled[1] = vFitted1
         t.vScaled[2] = vFitted2
 
-    def ApplyFittingStep(self):
+    def apply_fitting_step(self):
         constraints_vec = sorted(list(self.m_vConstraints), key=lambda c: c.nVertex)
         nVerts = len(self.m_vDeformedVerts)
         nConstraints = len(constraints_vec)
@@ -441,12 +442,12 @@ class RigidMeshDeformer:
             self.m_vDeformedVerts[i].vPosition[0] = float(solX[row])
             self.m_vDeformedVerts[i].vPosition[1] = float(solY[row])
 
-    def ValidateDeformedMesh(self, bRigid):
+    def validate_deformed_mesh(self, bRigid):
         nConstraints = len(self.m_vConstraints)
         if nConstraints < 2:
             return
 
-        self.ValidateSetup()
+        self.validate_setup()
 
         constraints_vec = sorted(list(self.m_vConstraints), key=lambda c: c.nVertex)
         nVerts = len(self.m_vDeformedVerts)
@@ -472,19 +473,6 @@ class RigidMeshDeformer:
 
         if bRigid:
             for i in range(len(self.m_vTriangles)):
-                self.UpdateScaledTriangle(i)
-            self.ApplyFittingStep()
+                self.update_scaled_triangle(i)
+            self.apply_fitting_step()
 
-    # API to fit with the app’s calls
-    def initialize_from_mesh(self, mesh: TriangleMesh):
-        self.InitializeFromMesh(mesh)
-
-    def set_deformed_handle(self, handle: int, pos_xy):
-        self.SetDeformedHandle(handle, pos_xy)
-
-    def remove_handle(self, handle: int):
-        self.RemoveHandle(handle)
-
-    def force_validation(self):
-        # Force precompute if needed for current constraints
-        self.ValidateSetup()
