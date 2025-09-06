@@ -26,8 +26,17 @@ class DeformGLWidget(QGLWidget):
         self.translate = np.array([0.0, 0.0], dtype=np.float32)
         self.scale = 1.0
 
-        self.make_square_mesh()
+        self.load_man_mesh()
         self.setFocusPolicy(Qt.StrongFocus)
+
+    def load_man_mesh(self):
+        try:
+            self.mesh.read_obj("assets/man.obj")
+            self.initialize_deformed_mesh()
+            self.update()
+        except Exception as e:
+            print(f"Error loading man mesh: {e}")
+            self.make_square_mesh()
 
     def make_square_mesh(self):
         self.mesh.clear()
