@@ -8,8 +8,8 @@ from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtCore import *
 from PyQt5.QtOpenGL import QGLWidget
 
-from rigid_mesh_deformer import RigidMeshDeformer
-from triangle_mesh import TriangleMesh
+from .rigid_mesh_deformer import RigidMeshDeformer
+from .triangle_mesh import TriangleMesh
 
 class DeformGLWidget(QGLWidget):
     def __init__(self, parent=None):

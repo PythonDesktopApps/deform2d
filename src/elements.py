@@ -1,4 +1,4 @@
-from utils import *
+from .utils import *
 
 class Vertex:
     def __init__(self, pos):

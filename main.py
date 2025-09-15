@@ -1,6 +1,6 @@
 import sys
 from PyQt5.QtWidgets import QMainWindow, QApplication
-from deform_gl_widget import DeformGLWidget
+from src.deform_gl_widget import DeformGLWidget
 
 
 class MainWindow(QMainWindow):

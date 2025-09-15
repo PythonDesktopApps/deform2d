@@ -1,7 +1,8 @@
 import numpy as np
-from triangle_mesh import TriangleMesh
-from elements import Constraint, Vertex, Triangle
 from scipy.linalg import lu_factor, lu_solve
+
+from .triangle_mesh import TriangleMesh
+from .elements import Constraint, Vertex, Triangle
 
 class RigidMeshDeformer:
 
