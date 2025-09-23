@@ -15,7 +15,7 @@ class DeformGLWidget(QGLWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.mesh = TriangleMesh()
-        self.deformed_mesh = TriangleMesh()
+        # self.deformed_mesh = TriangleMesh()
         self.deformer = RigidMeshDeformer()
         self.m_bConstraintsValid = False
 
@@ -102,6 +102,7 @@ class DeformGLWidget(QGLWidget):
         return (p - self.translate) / self.scale
 
     def find_hit_vertex(self, x, y):
+        """The vertex at the given SCREEN coordinates."""
         nVerts = self.deformed_mesh.get_num_vertices()
         for i in range(nVerts):
             v = self.deformed_mesh.get_vertex(i)
@@ -159,13 +160,20 @@ class DeformGLWidget(QGLWidget):
             glEnd()
 
     def mousePressEvent(self, event):
+        """
+        The event x and y are relative to the main_window, not the screen.
+        Note that event.pos().x() and event.x() are the same
+        """
+
         if event.button() == Qt.LeftButton:
             x = event.x()
+            print("LMB", "height", self.viewport[3], "event.y", event.y())
             y = self.viewport[3] - 1 - event.y()
             self.m_nSelected = self.find_hit_vertex(x, y)
             self.update()
         elif event.button() == Qt.RightButton:
             x = event.x()
+            print("RMB", "height", self.viewport[3], "event.y", event.y())
             y = self.viewport[3] - 1 - event.y()
             hit = self.find_hit_vertex(x, y)
             if hit is not None:
