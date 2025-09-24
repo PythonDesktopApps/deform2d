@@ -22,7 +22,7 @@ This is a working version of the ARAP 2D Shape manipulation in Python and PyQt5.
 * `v` - vertices of the triangles 
 * `vn` - vertex normals of the triangles
 * `vt` - vertex textures
-* `f` - the format is like this `{vertex index}/{vertex texture coordinate index}/{vertex normal index}`.
+* `f` - faces. the format is like this `{vertex index}/{vertex texture coordinate index}/{vertex normal index}`.
 
 
 ## TODO
