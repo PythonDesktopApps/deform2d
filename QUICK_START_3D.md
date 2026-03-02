@@ -12,17 +12,41 @@ pip install -r requirements.txt
 python main.py
 ```
 
+## Interface
+
+The application has:
+- **Left Panel**: Control panel with rotation mode and action buttons
+- **Main View**: 3D viewport showing the mesh
+- **Status Bar**: Quick help at the bottom
+
 ## Controls at a Glance
 
 | Action | Control |
 |--------|---------|
 | **Pin/Unpin vertex** | Right-click on vertex |
 | **Deform mesh** | Left-click vertex + drag |
-| **Rotate camera** | Left-click empty space + drag |
+| **Rotate object/camera** | Left-click empty space + drag |
 | **Zoom** | Mouse wheel |
-| **Load mesh** | Press `F` |
-| **Reset camera** | Press `R` |
-| **Clear all pins** | Press `C` |
+| **Load mesh** | Press `F` or click "Load Mesh" button |
+| **Reset view** | Press `R` or click "Reset View" button |
+| **Clear all pins** | Press `C` or click "Clear Pins" button |
+| **Switch rotation mode** | Use radio buttons in left panel |
+
+## Rotation Modes
+
+**Rotate Object** (Default) ⭐
+- The object rotates **in the direction you drag**
+- Drag left → object rotates left
+- Drag right → object rotates right
+- Feels like spinning the mesh with your mouse
+- **Most intuitive** for examining the model
+
+**Rotate Camera**
+- The camera orbits around the stationary object
+- Drag left → camera moves left (object appears to rotate right)
+- Drag right → camera moves right (object appears to rotate left)
+- Like walking around a sculpture
+- Alternative viewing mode
 
 ## Quick Tutorial
 

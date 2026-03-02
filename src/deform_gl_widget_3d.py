@@ -47,6 +47,10 @@ class DeformGLWidget3D(QGLWidget):
         self.camera = Camera3D()
         self.is_3d_mesh = False
         
+        # Rotation mode: 'object' or 'camera'
+        self.rotation_mode = 'object'  # Default to rotating object
+        self.object_rotation = np.array([0.0, 180.0], dtype=np.float32)  # pitch, yaw
+        
         # Mouse interaction
         self.last_mouse_pos = None
         self.is_rotating = False
@@ -90,8 +94,20 @@ class DeformGLWidget3D(QGLWidget):
         z_vals = self.mesh.vertices[:, 2]
         return np.any(np.abs(z_vals) > 1e-6)
 
+    def reset_view(self):
+        """Reset only the camera/object rotation to default angles (doesn't change zoom/position)"""
+        if not self.is_3d_mesh:
+            # For 2D meshes, look straight down
+            self.camera.rotation = np.array([0.0, 0.0], dtype=np.float32)
+            self.object_rotation = np.array([0.0, 0.0], dtype=np.float32)
+        else:
+            # For 3D meshes, set to nice 3/4 view
+            self.object_rotation = np.array([0.0, 180.0], dtype=np.float32)
+            self.camera.rotation = np.array([0.0, 0.0], dtype=np.float32)
+        self.update()
+    
     def fit_camera_to_mesh(self):
-        """Adjust camera to fit the mesh in view"""
+        """Adjust camera to fit the mesh in view (resets zoom, position, and rotation)"""
         if self.mesh.get_num_vertices() == 0:
             return
         
@@ -111,13 +127,8 @@ class DeformGLWidget3D(QGLWidget):
         self.camera.center = center
         self.camera.distance = size * 2.0 if size > 0 else 2.0
         
-        if not self.is_3d_mesh:
-            # For 2D meshes, look straight down
-            self.camera.rotation = np.array([0.0, 0.0], dtype=np.float32)
-        else:
-            # For 3D meshes, use a nice 3/4 isometric view angle
-            # Pitch: 20 degrees up, Yaw: 180 degrees (front view with slight rotation)
-            self.camera.rotation = np.array([20.0, 180.0], dtype=np.float32)
+        # Also reset rotation
+        self.reset_view()
 
     def make_square_mesh(self):
         self.mesh.clear()
@@ -315,6 +326,15 @@ class DeformGLWidget3D(QGLWidget):
         gluLookAt(eye[0], eye[1], eye[2],
                   center[0], center[1], center[2],
                   up[0], up[1], up[2])
+        
+        # Apply object rotation if in object rotation mode
+        if self.rotation_mode == 'object':
+            # Translate to center, rotate, translate back
+            glTranslatef(self.camera.center[0], self.camera.center[1], self.camera.center[2])
+            glRotatef(-self.object_rotation[0], 1.0, 0.0, 0.0)  # Pitch (around X axis)
+            glRotatef(-self.object_rotation[1], 0.0, 1.0, 0.0)  # Yaw (around Y axis)
+            glTranslatef(-self.camera.center[0], -self.camera.center[1], -self.camera.center[2])
+        
         self.modelview_matrix = glGetDoublev(GL_MODELVIEW_MATRIX)
         
         # Draw mesh
@@ -416,15 +436,23 @@ class DeformGLWidget3D(QGLWidget):
 
     def mouseMoveEvent(self, event):
         if self.is_rotating and self.last_mouse_pos is not None:
-            # Rotate camera
+            # Rotate camera or object based on mode
             current_pos = np.array([event.x(), event.y()], dtype=np.float32)
             delta = current_pos - self.last_mouse_pos
             
-            self.camera.rotation[1] += delta[0] * 0.5  # Yaw
-            self.camera.rotation[0] += delta[1] * 0.5  # Pitch
-            
-            # Clamp pitch
-            self.camera.rotation[0] = np.clip(self.camera.rotation[0], -89.0, 89.0)
+            if self.rotation_mode == 'camera':
+                # Camera rotation: drag left -> camera moves left -> object appears to rotate right
+                self.camera.rotation[1] += delta[0] * 0.5  # Yaw
+                self.camera.rotation[0] += delta[1] * 0.5  # Pitch
+                # Clamp pitch
+                self.camera.rotation[0] = np.clip(self.camera.rotation[0], -89.0, 89.0)
+            else:  # object rotation
+                # Object rotation: drag left -> object rotates left (intuitive)
+                # Negate the delta to make rotation follow mouse direction
+                self.object_rotation[1] -= delta[0] * 0.5  # Yaw (inverted)
+                self.object_rotation[0] -= delta[1] * 0.5  # Pitch (inverted)
+                # Clamp pitch
+                self.object_rotation[0] = np.clip(self.object_rotation[0], -89.0, 89.0)
             
             self.last_mouse_pos = current_pos
             self.update()
@@ -454,7 +482,7 @@ class DeformGLWidget3D(QGLWidget):
         key = event.key()
         if key == Qt.Key_F:
             fname, _ = QFileDialog.getOpenFileName(
-                self, "Open Mesh", "", 
+                self, "Open Mesh", "",
                 "Mesh Files (*.obj *.off);;OBJ Files (*.obj);;OFF Files (*.off);;All Files (*.*)"
             )
             if fname:
@@ -463,7 +491,7 @@ class DeformGLWidget3D(QGLWidget):
                         self.mesh.read_off(fname)
                     else:
                         self.mesh.read_obj(fname)
-                    
+
                     self.is_3d_mesh = self.check_if_3d()
                     self.m_vSelected.clear()
                     self.initialize_deformed_mesh()
@@ -471,18 +499,18 @@ class DeformGLWidget3D(QGLWidget):
                     self.update()
                 except Exception as e:
                     print(f"Error loading mesh: {e}")
-        
+
         elif key == Qt.Key_R:
             # Reset camera
             self.fit_camera_to_mesh()
             self.update()
-        
+
         elif key == Qt.Key_C:
             # Clear constraints
             self.m_vSelected.clear()
             self.deformer = RigidMeshDeformer()
             self.initialize_deformed_mesh()
             self.update()
-        
+
         else:
             super().keyPressEvent(event)
