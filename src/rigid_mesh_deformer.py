@@ -177,6 +177,10 @@ class RigidMeshDeformer:
         nVerts = len(self.m_vDeformedVerts)
         nConstraints = len(constraints_vec)
         nFreeVerts = nVerts - nConstraints
+        
+        # Edge case: if all vertices are constrained, nothing to solve
+        if nFreeVerts <= 0:
+            return
 
         # vertex map: free first, then constraints
         self.m_vVertexMap = [-1] * nVerts
@@ -240,6 +244,10 @@ class RigidMeshDeformer:
         nVerts = len(self.m_vDeformedVerts)
         nConstraints = len(constraints_vec)
         nFreeVerts = nVerts - nConstraints
+        
+        # Edge case: if all vertices are constrained, nothing to solve
+        if nFreeVerts <= 0:
+            return
 
         # vertex map: free first, then constraints
         self.m_vVertexMap = [-1] * nVerts
@@ -442,6 +450,10 @@ class RigidMeshDeformer:
         nVerts = len(self.m_vDeformedVerts)
         nConstraints = len(constraints_vec)
         nFreeVerts = nVerts - nConstraints
+        
+        # Edge case: if all vertices are constrained, nothing to fit
+        if nFreeVerts <= 0:
+            return
 
         vFX = np.zeros(nVerts, dtype=np.float64)
         vFY = np.zeros(nVerts, dtype=np.float64)
@@ -495,6 +507,15 @@ class RigidMeshDeformer:
         constraints_vec = sorted(list(self.m_vConstraints), key=lambda c: c.nVertex)
         nVerts = len(self.m_vDeformedVerts)
         nFreeVerts = nVerts - nConstraints
+        
+        # Edge case: if all vertices are constrained, positions are already set
+        if nFreeVerts <= 0:
+            # All vertices are constrained, just use their constraint positions
+            if bRigid:
+                for i in range(len(self.m_vTriangles)):
+                    self.update_scaled_triangle(i)
+                self.apply_fitting_step()
+            return
 
         # Use only x,y for 2D deformation
         vQ = np.zeros(2 * nConstraints, dtype=np.float64)

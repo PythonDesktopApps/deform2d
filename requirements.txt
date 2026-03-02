@@ -3,3 +3,7 @@ PyQt5==5.15.11
 scipy==1.13.1
 setuptools==80.9.0
 wheel==0.45.1
+
+# Testing dependencies
+pytest>=7.0.0
+pytest-cov>=4.0.0
