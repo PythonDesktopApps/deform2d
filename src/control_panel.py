@@ -64,7 +64,7 @@ class ControlPanel(QWidget):
         
         self.load_mesh_btn = QPushButton("Load Mesh (F)")
         self.reset_view_btn = QPushButton("Reset View (R)")
-        self.clear_constraints_btn = QPushButton("Clear Pins (C)")
+        self.clear_constraints_btn = QPushButton("Clear All (C)")
         
         # Add tooltips to clarify what each button does
         self.load_mesh_btn.setToolTip("Open a mesh file (.obj or .off)")
@@ -73,9 +73,10 @@ class ControlPanel(QWidget):
             "Keeps pins and deformation intact."
         )
         self.clear_constraints_btn.setToolTip(
-            "Remove all pins and reset mesh.\n"
-            "Mesh returns to original shape.\n"
-            "Camera view stays the same."
+            "Reset EVERYTHING:\n"
+            "• Remove all pins\n"
+            "• Reset mesh to original shape\n"
+            "• Reset camera view to default"
         )
         
         actions_layout.addWidget(self.load_mesh_btn)

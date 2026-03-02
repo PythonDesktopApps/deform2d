@@ -102,8 +102,8 @@ class DeformGLWidget3D(QGLWidget):
             self.object_rotation = np.array([0.0, 0.0], dtype=np.float32)
         else:
             # For 3D meshes, set to nice 3/4 view
-            self.object_rotation = np.array([0.0, 180.0], dtype=np.float32)
-            self.camera.rotation = np.array([0.0, 0.0], dtype=np.float32)
+            self.object_rotation = np.array([0.0, 0.0], dtype=np.float32)
+            self.camera.rotation = np.array([20.0, 180.0], dtype=np.float32)
         self.update()
     
     def fit_camera_to_mesh(self):

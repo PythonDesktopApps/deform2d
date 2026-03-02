@@ -44,11 +44,12 @@ class MainWindow(QMainWindow):
         self.glw.update()
     
     def clear_constraints(self):
-        """Clear all constraints and reset mesh"""
+        """Clear all constraints, reset mesh, and reset camera view"""
         self.glw.m_vSelected.clear()
         from src.rigid_mesh_deformer import RigidMeshDeformer
         self.glw.deformer = RigidMeshDeformer()
         self.glw.initialize_deformed_mesh()
+        self.glw.fit_camera_to_mesh()  # Also reset camera/view
         self.glw.update()
     
     def load_mesh(self):
