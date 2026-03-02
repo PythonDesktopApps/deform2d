@@ -6,7 +6,11 @@ from .utils import *
 
 class Vertex:
     def __init__(self, pos):
-        self.vPosition = vec2(pos)
+        # Support both 2D and 3D positions
+        if len(pos) == 2:
+            self.vPosition = np.array([pos[0], pos[1], 0.0], dtype=np.float32)
+        else:
+            self.vPosition = np.array([pos[0], pos[1], pos[2]], dtype=np.float32)
 
 class Triangle:
     def __init__(self):
@@ -19,7 +23,11 @@ class Triangle:
 class Constraint:
     def __init__(self, vidx, pos):
         self.nVertex = int(vidx)
-        self.vConstrainedPos = np.array([pos[0], pos[1]], dtype=np.float32)
+        # Support both 2D and 3D positions
+        if len(pos) == 2:
+            self.vConstrainedPos = np.array([pos[0], pos[1], 0.0], dtype=np.float32)
+        else:
+            self.vConstrainedPos = np.array([pos[0], pos[1], pos[2]], dtype=np.float32)
 
     def __lt__(self, other):
         return self.nVertex < other.nVertex
@@ -61,7 +69,7 @@ class RigidMeshDeformer:
         nVerts = mesh.get_num_vertices()
         for i in range(nVerts):
             v3 = mesh.get_vertex(i)
-            v = Vertex([v3[0], v3[1]])
+            v = Vertex([v3[0], v3[1], v3[2]])
             self.m_vInitialVerts.append(Vertex(v.vPosition))
             self.m_vDeformedVerts.append(Vertex(v.vPosition))
 
@@ -73,15 +81,16 @@ class RigidMeshDeformer:
             t.nVerts[:] = idx
             self.m_vTriangles.append(t)
 
-        # triangle-local coordinates
+        # triangle-local coordinates (use only x,y for 2D deformation)
         for t in self.m_vTriangles:
             for j in range(3):
                 n0 = j
                 n1 = (j + 1) % 3
                 n2 = (j + 2) % 3
-                v0 = self.m_vInitialVerts[t.nVerts[n0]].vPosition.astype(np.float64)
-                v1 = self.m_vInitialVerts[t.nVerts[n1]].vPosition.astype(np.float64)
-                v2 = self.m_vInitialVerts[t.nVerts[n2]].vPosition.astype(np.float64)
+                # Use only x and y components for 2D deformation calculations
+                v0 = self.m_vInitialVerts[t.nVerts[n0]].vPosition[:2].astype(np.float64)
+                v1 = self.m_vInitialVerts[t.nVerts[n1]].vPosition[:2].astype(np.float64)
+                v2 = self.m_vInitialVerts[t.nVerts[n2]].vPosition[:2].astype(np.float64)
                 v01 = v1 - v0
                 v01_perp = np.array([v01[1], -v01[0]], dtype=np.float64)
                 # project v2 in basis (v01, perp(v01)) with non-orthonormal scaling
@@ -119,10 +128,11 @@ class RigidMeshDeformer:
     def untransform_point(self, vTransform):
         # Convert current deformed-space point into initial-space via barycentrics
         for t in self.m_vTriangles:
-            v1 = self.m_vDeformedVerts[t.nVerts[0]].vPosition
-            v2 = self.m_vDeformedVerts[t.nVerts[1]].vPosition
-            v3 = self.m_vDeformedVerts[t.nVerts[2]].vPosition
-            b = barycentric_coords(vec2(vTransform), v1, v2, v3)
+            # Use only x,y for barycentric calculation
+            v1_2d = self.m_vDeformedVerts[t.nVerts[0]].vPosition[:2]
+            v2_2d = self.m_vDeformedVerts[t.nVerts[1]].vPosition[:2]
+            v3_2d = self.m_vDeformedVerts[t.nVerts[2]].vPosition[:2]
+            b = barycentric_coords(vec2(vTransform[:2]), v1_2d, v2_2d, v3_2d)
             if np.all(b >= 0) and np.all(b <= 1):
                 v1i = self.m_vInitialVerts[t.nVerts[0]].vPosition
                 v2i = self.m_vInitialVerts[t.nVerts[1]].vPosition
@@ -140,7 +150,7 @@ class RigidMeshDeformer:
             p = vVerts[i].vPosition
             arr[i, 0] = p[0]
             arr[i, 1] = p[1]
-            arr[i, 2] = 0.0
+            arr[i, 2] = p[2]
         mesh.vertices = arr
 
     def update_constraint(self, cons):
@@ -395,9 +405,10 @@ class RigidMeshDeformer:
 
     def update_scaled_triangle(self, nTriangle):
         t = self.m_vTriangles[nTriangle]
-        v0 = self.m_vDeformedVerts[t.nVerts[0]].vPosition.astype(np.float64)
-        v1 = self.m_vDeformedVerts[t.nVerts[1]].vPosition.astype(np.float64)
-        v2 = self.m_vDeformedVerts[t.nVerts[2]].vPosition.astype(np.float64)
+        # Use only x,y for 2D scaling calculations
+        v0 = self.m_vDeformedVerts[t.nVerts[0]].vPosition[:2].astype(np.float64)
+        v1 = self.m_vDeformedVerts[t.nVerts[1]].vPosition[:2].astype(np.float64)
+        v2 = self.m_vDeformedVerts[t.nVerts[2]].vPosition[:2].astype(np.float64)
         vDeformed = np.array([v0[0], v0[1], v1[0], v1[1], v2[0], v2[1]], dtype=np.float64)
 
         mCVec = t.mC @ vDeformed
@@ -412,8 +423,9 @@ class RigidMeshDeformer:
         vFitted01Perp = np.array([vFitted01[1], -vFitted01[0]], dtype=np.float64)
         vFitted2 = vFitted0 + x01 * vFitted01 + y01 * vFitted01Perp
 
-        vOrigV0 = self.m_vInitialVerts[t.nVerts[0]].vPosition.astype(np.float64)
-        vOrigV1 = self.m_vInitialVerts[t.nVerts[1]].vPosition.astype(np.float64)
+        # Use only x,y for scale calculation
+        vOrigV0 = self.m_vInitialVerts[t.nVerts[0]].vPosition[:2].astype(np.float64)
+        vOrigV1 = self.m_vInitialVerts[t.nVerts[1]].vPosition[:2].astype(np.float64)
         denom = np.linalg.norm(vFitted01)
         scale = (np.linalg.norm(vOrigV1 - vOrigV0) / denom) if denom > 1e-20 else 1.0
 
@@ -461,13 +473,17 @@ class RigidMeshDeformer:
         solX = lu_solve(self.mLUFactX, rhsX, check_finite=False)
         solY = lu_solve(self.mLUFactY, rhsY, check_finite=False)
 
+        # Write back fitted positions (preserve z coordinate)
         for i in range(nVerts):
             c = Constraint(i, [0.0, 0.0])
             if c in self.m_vConstraints:
                 continue
             row = self.m_vVertexMap[i]
+            # Preserve the original z coordinate
+            orig_z = self.m_vDeformedVerts[i].vPosition[2]
             self.m_vDeformedVerts[i].vPosition[0] = float(solX[row])
             self.m_vDeformedVerts[i].vPosition[1] = float(solY[row])
+            self.m_vDeformedVerts[i].vPosition[2] = orig_z
 
     def validate_deformed_mesh(self, bRigid):
         nConstraints = len(self.m_vConstraints)
@@ -480,6 +496,7 @@ class RigidMeshDeformer:
         nVerts = len(self.m_vDeformedVerts)
         nFreeVerts = nVerts - nConstraints
 
+        # Use only x,y for 2D deformation
         vQ = np.zeros(2 * nConstraints, dtype=np.float64)
         for i, c in enumerate(constraints_vec):
             vQ[2 * i] = float(c.vConstrainedPos[0])
@@ -488,7 +505,7 @@ class RigidMeshDeformer:
         # u = Final * q
         vU = self.m_mFirstMatrix @ vQ  # size 2*nFreeVerts
 
-        # write back into free vertices
+        # write back into free vertices (preserve z coordinate)
         for i in range(nVerts):
             c = Constraint(i, [0.0, 0.0])
             if c in self.m_vConstraints:
@@ -496,7 +513,9 @@ class RigidMeshDeformer:
             row = self.m_vVertexMap[i]
             fX = vU[2 * row]
             fY = vU[2 * row + 1]
-            self.m_vDeformedVerts[i].vPosition[:] = [float(fX), float(fY)]
+            # Preserve the original z coordinate
+            orig_z = self.m_vDeformedVerts[i].vPosition[2]
+            self.m_vDeformedVerts[i].vPosition[:] = [float(fX), float(fY), orig_z]
 
         if bRigid:
             for i in range(len(self.m_vTriangles)):

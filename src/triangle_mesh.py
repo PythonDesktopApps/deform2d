@@ -68,3 +68,53 @@ class TriangleMesh:
             return
         self.vertices = np.array(verts, dtype=np.float32)
         self.triangles = np.array(faces, dtype=np.int32)
+
+    def read_off(self, path):
+        """Read mesh from OFF file format."""
+        self.clear()
+        verts = []
+        faces = []
+        with open(path, 'r') as f:
+            # Read header
+            header = f.readline().strip()
+            if header != 'OFF':
+                raise ValueError(f"Invalid OFF file: expected 'OFF' header, got '{header}'")
+            
+            # Read counts
+            counts_line = f.readline().strip()
+            while not counts_line or counts_line.startswith('#'):
+                counts_line = f.readline().strip()
+            parts = counts_line.split()
+            num_verts = int(parts[0])
+            num_faces = int(parts[1])
+            
+            # Read vertices
+            for i in range(num_verts):
+                line = f.readline().strip()
+                while not line or line.startswith('#'):
+                    line = f.readline().strip()
+                parts = line.split()
+                x, y, z = float(parts[0]), float(parts[1]), float(parts[2])
+                verts.append([x, y, z])
+            
+            # Read faces (triangles)
+            for i in range(num_faces):
+                line = f.readline().strip()
+                while not line or line.startswith('#'):
+                    line = f.readline().strip()
+                parts = line.split()
+                n_verts = int(parts[0])
+                if n_verts == 3:
+                    # Triangle
+                    v0, v1, v2 = int(parts[1]), int(parts[2]), int(parts[3])
+                    faces.append([v0, v1, v2])
+                elif n_verts == 4:
+                    # Quad - split into two triangles
+                    v0, v1, v2, v3 = int(parts[1]), int(parts[2]), int(parts[3]), int(parts[4])
+                    faces.append([v0, v1, v2])
+                    faces.append([v0, v2, v3])
+        
+        if len(verts) == 0 or len(faces) == 0:
+            return
+        self.vertices = np.array(verts, dtype=np.float32)
+        self.triangles = np.array(faces, dtype=np.int32)
