@@ -94,18 +94,6 @@ with tempfile.NamedTemporaryFile(suffix='.obj') as f:
     mesh.read_obj(f.name)
 ```
 
-## Example Test Results
-
-```
-tests/test_utils.py::TestVec2::test_vec2_from_list PASSED
-tests/test_utils.py::TestBarycentricCoords::test_barycentric_at_vertex_a PASSED
-tests/test_triangle_mesh.py::TestOBJFileFormat::test_read_obj_simple_triangle PASSED
-tests/test_rigid_mesh_deformer.py::TestDeformation::test_deformation_preserves_z_coordinate PASSED
-tests/test_camera.py::TestViewMatrix::test_view_matrix_distance PASSED
-
-==================== 115 passed in 2.34s ====================
-```
-
 ## Running Specific Tests
 
 ```bash
@@ -238,22 +226,6 @@ pytest -vv
 pytest -s
 ```
 
-## Adding New Tests
-
-1. **Create test file**: `tests/test_new_feature.py`
-2. **Write test class**: `class TestNewFeature:`
-3. **Add test methods**: `def test_specific_behavior():`
-4. **Run tests**: `pytest tests/test_new_feature.py`
-5. **Check coverage**: `pytest --cov=src.new_feature`
-
-## Benefits of This Test Suite
-
-✅ **Catches bugs early** - Math errors found immediately  
-✅ **Enables refactoring** - Change code confidently  
-✅ **Documents behavior** - Tests show how code works  
-✅ **Prevents regressions** - Old bugs stay fixed  
-✅ **Improves design** - Testable code is better code  
-
 ## Common Issues
 
 ### Import Errors
@@ -274,6 +246,3 @@ export DISPLAY=:0
 xvfb-run pytest
 ```
 
-## Next Steps
-
-See `tests/README.md` for detailed testing guide.

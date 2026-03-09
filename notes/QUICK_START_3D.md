@@ -32,6 +32,14 @@ The application has:
 | **Clear all pins** | Press `C` or click "Clear Pins" button |
 | **Switch rotation mode** | Use radio buttons in left panel |
 
+## Keyboard Shortcuts
+
+| Key | Action | Also Available Via |
+|-----|--------|-------------------|
+| **F** | Load mesh | "Load Mesh" button |
+| **R** | Reset view | "Reset View" button |
+| **C** | Clear pins | "Clear Pins" button |
+
 ## Rotation Modes
 
 **Rotate Object** (Default) ⭐
